@@ -8,12 +8,12 @@ public class CobolDataVariable
     public int Length { get; set; } // Based on PIC clause
     public bool IsArray { get; set; }
     public int OccursCount { get; set; } // If OCCURS is present
-    public CobolDataVariable Parent { get; private set; } // Reference to the parent node
+    public CobolDataVariable Parent { get;  set; } // Reference to the parent node
 
     public List<CobolDataVariable> Children { get; set; } = new List<CobolDataVariable>();
     public object Value { get; set; }
 
-    public CobolDataVariable(string name, int level, string type, int length, bool isArray = false, int occursCount = 0)
+    /*public CobolDataVariable(string name, int level, string type, int length, bool isArray = false, int occursCount = 0)
     {
         Name = name;
         Level = level;
@@ -21,11 +21,27 @@ public class CobolDataVariable
         Length = length;
         IsArray = isArray;
         OccursCount = occursCount;
-    }
+    }*/
 
+    public CobolDataVariable DeepClone()
+    {
+        return new CobolDataVariable
+        {
+            Name = this.Name,
+            Level = this.Level,
+            Type = this.Type,
+            Length = this.Length,
+            IsArray = this.IsArray,
+            OccursCount = this.OccursCount,
+
+            Value = this.Value,
+            Parent = Parent,
+            Children = new List<CobolDataVariable>(this.Children)
+        };
+    }
     public void AddChild(CobolDataVariable child)
     {
-        child.Parent = this; // Set the parent reference
+        child.Parent = this;
         Children.Add(child);
     }
 }

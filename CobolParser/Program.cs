@@ -14,5 +14,5 @@ var parser = new CobolParser(tokenStream);
 var tree = parser.startRule();
 
 // Create and attach the listener
-var listener = new CustomDataDivisionListener(parser);
-Antlr4.Runtime.Tree.ParseTreeWalker.Default.Walk(listener, tree);
+var listener = new CustomDataDivsionVisitor(parser);
+listener.Visit(tree);
