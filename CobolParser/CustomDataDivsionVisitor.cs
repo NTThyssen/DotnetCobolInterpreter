@@ -5,8 +5,9 @@ namespace DotnetCobolParser;
 public class CustomDataDivsionVisitor : CobolParserBaseVisitor<object> // Replace 'Cobol' with your grammar name
 {
 
-    Stack<CobolDataVariable> globalCobolnodeStack = new Stack<CobolDataVariable>();
     Stack<CobolDataVariable> currentCobolnodeStack = new Stack<CobolDataVariable>();
+
+    SymbolTable symbolTable= new SymbolTable();
     private readonly CobolParser _parser;
 
     CobolDataVariable root = new CobolDataVariable(){Level = 0};
@@ -40,6 +41,7 @@ public class CustomDataDivsionVisitor : CobolParserBaseVisitor<object> // Replac
         
             currentParent.AddChild(element);
             currentParent = element;
+            symbolTable.AddDataNode(element);
         }
        
         base.VisitDataDescriptionEntryFormat1(context);
