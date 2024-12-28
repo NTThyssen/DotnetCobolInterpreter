@@ -10,35 +10,11 @@ public class CobolDataVariable
     public int OccursCount { get; set; } // If OCCURS is present
     public CobolDataVariable Parent { get;  set; } // Reference to the parent node
 
+    public CobolDataVariable RedefinedVar {get; set; }
+
     public List<CobolDataVariable> Children { get; set; } = new List<CobolDataVariable>();
     public object Value { get; set; }
 
-    /*public CobolDataVariable(string name, int level, string type, int length, bool isArray = false, int occursCount = 0)
-    {
-        Name = name;
-        Level = level;
-        Type = type;
-        Length = length;
-        IsArray = isArray;
-        OccursCount = occursCount;
-    }*/
-
-    public CobolDataVariable DeepClone()
-    {
-        return new CobolDataVariable
-        {
-            Name = this.Name,
-            Level = this.Level,
-            Type = this.Type,
-            Length = this.Length,
-            IsArray = this.IsArray,
-            OccursCount = this.OccursCount,
-
-            Value = this.Value,
-            Parent = Parent,
-            Children = new List<CobolDataVariable>(this.Children)
-        };
-    }
     public void AddChild(CobolDataVariable child)
     {
         child.Parent = this;

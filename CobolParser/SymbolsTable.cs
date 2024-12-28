@@ -17,10 +17,10 @@ public class SymbolTable
     public object GetValue(string name)
     {
         var node = GetDataNode(name);
-        return node.Value; // You might store a separate 'Value' property or another structure for actual data values
+        return node.Value; 
     }
 
-    public void SetValue(string name, List<CobolDataVariable> value)
+    public void SetValue(string name, object value)
     {
         var node = GetDataNode(name);
         if (node != null)

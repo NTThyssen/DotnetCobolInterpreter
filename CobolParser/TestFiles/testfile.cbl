@@ -140,5 +140,22 @@
            05  ANNUAL-REVENUE           PIC 9(10)V99.
                
         PROCEDURE DIVISION.
+           MOVE 'ABC Corporation' TO COMPANY-NAME.
            DISPLAY "Hello, World!".
+
+           MOVE 25 TO TOTAL-EMPLOYEES TOTAL-EMPLOYEES.
+           MOVE 15 TO COMPANY-FOUNDED COMPANY-FOUNDED.
+           
+           IF TOTAL-EMPLOYEES > COMPANY-FOUNDED THEN
+              DISPLAY 'IN LOOP 1 - IF BLOCK'
+           
+              IF TOTAL-EMPLOYEES = COMPANY-FOUNDED THEN
+                 DISPLAY 'IN LOOP 2 - IF BLOCK'
+              ELSE
+                 DISPLAY 'IN LOOP 2 - ELSE BLOCK'
+              END-IF
+           
+           ELSE
+              DISPLAY 'IN LOOP 1 - ELSE BLOCK'
+           END-IF.
            STOP RUN.
