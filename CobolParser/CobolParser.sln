@@ -1,0 +1,28 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CobolParser", "CobolParser.csproj", "{EBDD42B9-F588-E333-3FA0-8FFB47B53D31}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EBDD42B9-F588-E333-3FA0-8FFB47B53D31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBDD42B9-F588-E333-3FA0-8FFB47B53D31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBDD42B9-F588-E333-3FA0-8FFB47B53D31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBDD42B9-F588-E333-3FA0-8FFB47B53D31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A06D3205-312C-442C-9C9F-202E44989D5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A06D3205-312C-442C-9C9F-202E44989D5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A06D3205-312C-442C-9C9F-202E44989D5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A06D3205-312C-442C-9C9F-202E44989D5F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BDCE9E79-F0EB-4D89-A0E1-0D343E514703}
+	EndGlobalSection
+EndGlobal
