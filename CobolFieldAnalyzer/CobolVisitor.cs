@@ -1,15 +1,48 @@
 namespace CobolFieldAnalyzer;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
+using DotnetCobolParser;
+
 
 public class CustomCobolVisitor : CobolParserBaseVisitor<object> // Replace 'Cobol' with your grammar name
 {
 
     string variableToTrack;
 
-    public CustomCobolVisitor(string input)
+    SymbolTable symbolTable = SymbolTable.Instance;
+    public CustomCobolVisitor(string input, SymbolTable table)
     {
         variableToTrack = input;
+        symbolTable = table;
+    }
+
+
+    //create a function which goes though the symbol table and finds if any of the current variable's parents are in the symbol table
+    public bool IsParentInSymbolTable(string varToTrack, string variableName)
+    {
+        CobolDataVariable currentVariable = symbolTable.GetDataNode(varToTrack);
+        while (currentVariable.Parent != null)
+        {
+            if (symbolTable.GetDataNode(variableName) != null)
+            {
+                return true;
+            }
+            currentVariable = currentVariable.Parent;
+        }
+        return false;
+    }
+    public CobolDataVariable getParent(string varToTrack, string variableName)
+    {
+        CobolDataVariable currentVariable = symbolTable.GetDataNode(varToTrack);
+        while (currentVariable.Parent != null)
+        {
+            if (symbolTable.GetDataNode(variableName) != null)
+            {
+                return currentVariable.Parent;
+            }
+            currentVariable = currentVariable.Parent;
+        }
+        return null;
     }
 
     private List<(string StatementType, string VariableName, int LineNumber)> variableUsages = new List<(string StatementType, string VariableName, int LineNumber)>();
@@ -17,10 +50,11 @@ public class CustomCobolVisitor : CobolParserBaseVisitor<object> // Replace 'Cob
     public override object VisitVariableUsageName(CobolParser.VariableUsageNameContext context)
     {
         string variableName = context.GetText();
-        if (variableName != variableToTrack)
+        if (variableName != variableToTrack && IsParentInSymbolTable(variableToTrack, variableName) == false)
         {
             return base.VisitVariableUsageName(context);
         }
+        
         string statementType = "Unknown Statement";
         int lineNumber = context.Start.Line; // Get the line number
 
