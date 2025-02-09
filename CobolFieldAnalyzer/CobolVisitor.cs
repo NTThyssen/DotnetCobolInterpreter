@@ -23,7 +23,7 @@ public class CustomCobolVisitor : CobolParserBaseVisitor<object> // Replace 'Cob
         CobolDataVariable currentVariable = symbolTable.GetDataNode(varToTrack);
         while (currentVariable.Parent != null)
         {
-            if (symbolTable.GetDataNode(variableName) != null)
+            if (currentVariable.Parent == symbolTable.GetDataNode(variableName))
             {
                 return true;
             }
@@ -36,7 +36,7 @@ public class CustomCobolVisitor : CobolParserBaseVisitor<object> // Replace 'Cob
         CobolDataVariable currentVariable = symbolTable.GetDataNode(varToTrack);
         while (currentVariable.Parent != null)
         {
-            if (symbolTable.GetDataNode(variableName) != null)
+            if (currentVariable.Parent == symbolTable.GetDataNode(variableName))
             {
                 return currentVariable.Parent;
             }
@@ -50,11 +50,11 @@ public class CustomCobolVisitor : CobolParserBaseVisitor<object> // Replace 'Cob
     public override object VisitVariableUsageName(CobolParser.VariableUsageNameContext context)
     {
         string variableName = context.GetText();
-        if (variableName != variableToTrack && IsParentInSymbolTable(variableToTrack, variableName) == false)
+        if (variableName != variableToTrack && !IsParentInSymbolTable(variableToTrack, variableName))
         {
             return base.VisitVariableUsageName(context);
         }
-        
+
         string statementType = "Unknown Statement";
         int lineNumber = context.Start.Line; // Get the line number
 

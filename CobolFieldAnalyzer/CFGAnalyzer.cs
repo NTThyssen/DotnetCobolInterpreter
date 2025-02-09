@@ -27,6 +27,7 @@ public class CFGAnalyzer{
         {
             Console.WriteLine("Warning: No starting node (MAIN or any node) found in CFG to start analysis.");
         }
+        customCobolVisitor.WriteVariableUsagesToCsv("output.csv");
     }
 
     private void ExecuteStatementsAndPerformCalls(CFGNode currentNode, HashSet<CFGNode> visited)
