@@ -1,4 +1,4 @@
-using DotnetCobolParser;
+namespace CobolFieldAnalyzer;
 
 public class SymbolTable
 {

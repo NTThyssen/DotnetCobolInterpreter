@@ -1,7 +1,6 @@
 namespace CobolFieldAnalyzer;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
-using DotnetCobolParser;
 
 
 public class CustomCobolVisitor : CobolParserBaseVisitor<object> // Replace 'Cobol' with your grammar name

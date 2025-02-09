@@ -1,4 +1,4 @@
-namespace DotnetCobolParser;
+namespace CobolFieldAnalyzer;
 
 public class CobolDataVariable
 {

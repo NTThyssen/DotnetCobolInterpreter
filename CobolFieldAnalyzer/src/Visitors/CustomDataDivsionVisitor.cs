@@ -1,7 +1,7 @@
 using Antlr4.Runtime.Tree;
 using CobolFieldAnalyzer;
 
-namespace DotnetCobolParser;
+namespace CobolFieldAnalyzer;
 
 public class CustomDataDivsionVisitor : CobolParserBaseVisitor<object> // Replace 'Cobol' with your grammar name
 {

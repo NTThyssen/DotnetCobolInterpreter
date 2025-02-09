@@ -1,7 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using Antlr4.Runtime;
 using CobolFieldAnalyzer;
-using DotnetCobolParser;
 
 string input = File.ReadAllText("TestFiles\\testfile.cbl"); // Replace with your test input
 
