@@ -1349,7 +1349,7 @@ dialectIfStatment
 ifStatement
    : IF condition ifThen
    (
-      ifElse?
+      ifElse
       
    )
    (END_IF)

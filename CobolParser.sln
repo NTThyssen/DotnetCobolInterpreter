@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CobolParser", "CobolParser\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CobolFieldAnalyzer", "CobolFieldAnalyzer\CobolFieldAnalyzer.csproj", "{935AFC3D-021F-45AA-BB62-56F26CBBF0BC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CobolTranspiler", "CobolTranspiler\CobolTranspiler.csproj", "{AB7C3817-7D81-4D60-BE15-FAA3B379BC52}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{935AFC3D-021F-45AA-BB62-56F26CBBF0BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{935AFC3D-021F-45AA-BB62-56F26CBBF0BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{935AFC3D-021F-45AA-BB62-56F26CBBF0BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB7C3817-7D81-4D60-BE15-FAA3B379BC52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB7C3817-7D81-4D60-BE15-FAA3B379BC52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB7C3817-7D81-4D60-BE15-FAA3B379BC52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB7C3817-7D81-4D60-BE15-FAA3B379BC52}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

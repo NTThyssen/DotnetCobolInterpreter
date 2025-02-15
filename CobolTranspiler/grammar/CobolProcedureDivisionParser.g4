@@ -6,768 +6,11 @@
 * of the MIT license. See the LICENSE file for details.
 */
 
-parser grammar CobolParser;
-options {tokenVocab = CobolLexer;}
-
-startRule : compilationUnit EOF;
-
-compilationUnit
-   : programOrFunctionUnit+
-   ;
-
-programOrFunctionUnit
-   : identificationDivision (programDetails | functionDetails)
-   ;
-
-programDetails
-   : programIdParagraph identificationDivisionBody* environmentDivision? dataDivision? procedureDivision? nestedProgramUnit* endProgramStatement?
-   // TODO: This rule requires abitrary long lookahead due to conflict with compilationUnit
-   //       It might be possible to parse all programs as peers and enforce nesting later on
-   // This is what the grammar should actually look like, but tests start failing.
-   // (
-   //    nestedProgramUnit+ endProgramStatement
-   //    |
-   //    endProgramStatement?
-   // )
-   ;
-
-nestedProgramUnit
-   : identificationDivision programDetails // The end should be unconditional, but tests start failing
-   ;
-
-endProgramStatement
-   : END PROGRAM programName DOT_FS
-   ;
-
-functionDetails
-   : functionIdParagraph identificationDivisionBody* environmentDivision? dataDivision? procedureDivision endFunctionStatement
-   // END is required by the compiler even though the documentation suggests it is optional
-   ;
-
-endFunctionStatement
-   : END FUNCTION programName DOT_FS
-   ;
-
-commaSeparator: COMMACHAR | COMMASEPARATOR;
-
-// --- identification division --------------------------------------------------------------------
-
-identificationDivision
-   : (IDENTIFICATION | ID) DIVISION dot_fs
-   ;
-
-identificationDivisionBody
-   : authorParagraph | installationParagraph | dateWrittenParagraph | dateCompiledParagraph | securityParagraph | remarksParagraph
-   ;
-
-// - program id paragraph ----------------------------------
-
-programIdParagraph
-   : PROGRAM_ID DOT_FS? programName (IS? (COMMON | INITIAL | LIBRARY | DEFINITION | RECURSIVE) PROGRAM?)? DOT_FS?
-   ;
-
-functionIdParagraph
-   : FUNCTION_ID DOT_FS? programName
-     (AS literal)?
-     (IS? PROTOTYPE)?
-     // compiler accepts both orderings
-     (
-        ENTRY_NAME IS? (COMPAT|LONGUPPER|LONGMIXED) (ENTRY_INTERFACE IS? (STATIC|DYNAMIC|DLL))?
-        |
-        ENTRY_INTERFACE IS? (STATIC|DYNAMIC|DLL) (ENTRY_NAME IS? (COMPAT|LONGUPPER|LONGMIXED))?
-        |
-     )
-     DOT_FS?
-   ;
-
-// - author paragraph ----------------------------------
-
-authorParagraph
-   : AUTHOR DOT_FS? optionalParagraphTermination
-   ;
-
-// - installation paragraph ----------------------------------
-
-installationParagraph
-   : INSTALLATION DOT_FS? optionalParagraphTermination
-   ;
-
-// - date written paragraph ----------------------------------
-
-dateWrittenParagraph
-   : DATE_WRITTEN DOT_FS? optionalParagraphTermination
-   ;
-
-// - date compiled paragraph ----------------------------------
-
-dateCompiledParagraph
-   : DATE_COMPILED DOT_FS? optionalParagraphTermination
-   ;
-
-// - security paragraph ----------------------------------
-
-securityParagraph
-   : SECURITY DOT_FS? optionalParagraphTermination
-   ;
-
-// remarks paragraph
-
-remarksParagraph
-   : REMARKS DOT_FS? optionalParagraphTermination
-   ;
-
-// - end of comment entry
-optionalParagraphTermination
-   : ~(AUTHOR | CBL| DATE_COMPILED | DATE_WRITTEN | IDENTIFICATION | INSTALLATION
-   | END | ENVIRONMENT | ID | PROCEDURE | PROCESS | PROGRAM_ID | SECURITY | REMARKS)*?
-   ;
-
-// --- environment division --------------------------------------------------------------------
-
-environmentDivision
-   : ENVIRONMENT DIVISION dot_fs environmentDivisionBody*
-   ;
-
-environmentDivisionBody
-   : configurationSection | inputOutputSection | dialectSection
-   ;
-
-// -- configuration section ----------------------------------
-
-configurationSection
-   : CONFIGURATION SECTION dot_fs configurationSectionParagraph*
-   ;
-
-// - configuration section paragraph ----------------------------------
-
-configurationSectionParagraph
-   : sourceComputerParagraph | objectComputerParagraph | specialNamesParagraph | repositoryParagraph
-   // strictly, specialNamesParagraph does not belong into configurationSectionParagraph, but IBM-COBOL allows this
-   ;
-
-// - repository paragraph ----------------------------------
-
-repositoryParagraph
-    : REPOSITORY DOT_FS (classRepositoryClause | functionRepositoryClause)* DOT_FS?
-    ;
-
-classRepositoryClause
-    : CLASS className IS? literal
-    ;
-
-functionRepositoryClause
-    : functionReference | intrinsicClause
-    ;
-
-functionReference
-    : FUNCTION functionName
-    ;
-
-intrinsicClause
-    : (functionName* | ALL) INTRINSIC
-    ;
-
-// - source computer paragraph ----------------------------------
-
-sourceComputerParagraph
-   : SOURCE_COMPUTER dot_fs (computerName (WITH? DEBUGGING MODE)? dot_fs)?
-   ;
-
-// - object computer paragraph ----------------------------------
-
-objectComputerParagraph
-   : OBJECT_COMPUTER dot_fs (computerName objectComputerClause* dot_fs)?
-   ;
-
-objectComputerClause
-   : memorySizeClause | diskSizeClause | collatingSequenceClause | segmentLimitClause | characterSetClause
-   ;
-
-memorySizeClause
-   : MEMORY SIZE? (integerLiteral | cobolWord) (WORDS | CHARACTERS | MODULES)?
-   ;
-
-diskSizeClause
-   : DISK SIZE? IS? (integerLiteral | cobolWord) (WORDS | MODULES)?
-   ;
-
-collatingSequenceClause
-   : PROGRAM? COLLATING? SEQUENCE IS? alphabetName+ collatingSequenceClauseAlphanumeric? collatingSequenceClauseNational?
-   ;
-
-collatingSequenceClauseAlphanumeric
-   : FOR? ALPHANUMERIC IS? alphabetName
-   ;
-
-collatingSequenceClauseNational
-   : FOR? NATIONAL IS? alphabetName
-   ;
-
-segmentLimitClause
-   : SEGMENT_LIMIT IS? integerLiteral
-   ;
-
-characterSetClause
-   : CHARACTER SET dot_fs   ;
-
-// - special names paragraph ----------------------------------
-
-specialNamesParagraph
-   : SPECIAL_NAMES dot_fs (specialNameClause+ dot_fs)?
-   ;
-
-specialNameClause
-   : channelClause | odtClause | alphabetClause | classClause | currencySignClause
-   | decimalPointClause | symbolicCharactersClause | environmentSwitchNameClause
-   | environmentSwitchNameSpecialNamesStatusPhrase | defaultDisplaySignClause | defaultComputationalSignClause
-   | reserveNetworkClause
-   ;
-
-alphabetClause
-   : ALPHABET (alphabetClauseFormat1 | alphabetClauseFormat2)
-   ;
-
-alphabetClauseFormat1
-   : alphabetName (FOR ALPHANUMERIC)? IS? (EBCDIC | ASCII | STANDARD_1 | STANDARD_2 | NATIVE | cobolWord | alphabetLiterals+)
-   ;
-
-alphabetLiterals
-   : literal (alphabetThrough | (ALSO? literal)+)?
-   ;
-
-alphabetThrough
-   : (THROUGH | THRU) literal
-   ;
-
-alphabetClauseFormat2
-   : alphabetName FOR? NATIONAL IS? (NATIVE | CCSVERSION literal)
-   ;
-
-channelClause
-   : CHANNEL integerLiteral IS? mnemonicName
-   ;
-
-classClause
-   : CLASS className (FOR? (ALPHANUMERIC | NATIONAL))? IS? classClauseThrough+
-   ;
-
-classClauseThrough
-   : classClauseFrom ((THROUGH | THRU) classClauseTo)?
-   ;
-
-classClauseFrom
-   : literal | generalIdentifier
-   ;
-
-classClauseTo
-   : literal | generalIdentifier
-   ;
-
-currencySignClause
-   : CURRENCY SIGN? IS? literal (WITH? PICTURE SYMBOL literal)?
-   ;
-
-decimalPointClause
-   : DECIMAL_POINT IS? COMMA
-   ;
-
-defaultComputationalSignClause
-   : DEFAULT (COMPUTATIONAL | COMP)? (SIGN IS?)? (LEADING | TRAILING)? (SEPARATE CHARACTER?)
-   ;
-
-defaultDisplaySignClause
-   : DEFAULT_DISPLAY (SIGN IS?)? (LEADING | TRAILING) (SEPARATE CHARACTER?)?
-   ;
-
-environmentSwitchNameClause
-   : environmentName IS? mnemonicName
-   ;
-
-environmentSwitchNameSpecialNamesStatusPhrase
-   : (ON | OFF) STATUS? IS? condition
-   ;
-
-odtClause
-   : ODT IS? mnemonicName
-   ;
-
-reserveNetworkClause
-   : RESERVE WORDS? LIST? IS? NETWORK CAPABLE?
-   ;
-
-symbolicCharactersClause
-   : SYMBOLIC CHARACTERS? (FOR? (ALPHANUMERIC | NATIONAL))? symbolicCharacters+ (IN alphabetName)?
-   ;
-
-symbolicCharacters
-   : symbolicCharacter+ (IS | ARE)? integerLiteral+
-   ;
-
-// -- input output section ----------------------------------
-
-inputOutputSection
-   : INPUT_OUTPUT SECTION dot_fs inputOutputSectionParagraph*
-   ;
-
-// - input output section paragraph ----------------------------------
-
-inputOutputSectionParagraph
-   : fileControlParagraph | ioControlParagraph
-   ;
-
-// - file control paragraph ----------------------------------
-
-fileControlParagraph
-   : FILE_CONTROL dot_fs fileControlEntry*
-   ;
-
-fileControlEntry
-   : selectClause fileControlClauses dot_fs   ;
-
-fileControlClauses
-   : fileControlClause*
-   ;
-
-selectClause
-   : SELECT OPTIONAL? fileName
-   ;
-
-fileControlClause
-   : assignClause | reserveClause | organizationClause | paddingCharacterClause | accessModeClause | recordClause | alternateRecordKeyClause | fileStatusClause | passwordClause | relativeKeyClause
-   ;
-
-assignClause
-   : ASSIGN TO? (DISK | DISPLAY | KEYBOARD | PORT | PRINTER | READER | REMOTE | TAPE | VIRTUAL | (DYNAMIC | EXTERNAL | VARYING)? assignmentName | literal)+
-   ;
-
-reserveClause
-   : RESERVE (NO | integerLiteral) ALTERNATE? (AREA | AREAS)?
-   ;
-
-organizationClause
-   : (ORGANIZATION IS?)? (LINE | RECORD BINARY | RECORD | BINARY)? (SEQUENTIAL | RELATIVE | INDEXED)
-   ;
-
-paddingCharacterClause
-   : PADDING CHARACTER? IS? (qualifiedDataName | literal)
-   ;
-
-recordClause
-   : RECORD (recordDelimiterClause | recordKeyClause)
-   ;
-
-recordDelimiterClause
-   : DELIMITER IS? (STANDARD_1 | IMPLICIT | assignmentName)
-   ;
-
-accessModeClause
-   : ACCESS MODE? IS? (SEQUENTIAL | RANDOM | DYNAMIC | EXCLUSIVE)
-   ;
-
-recordKeyClause
-   : KEY? IS? qualifiedDataName passwordClause? (WITH? DUPLICATES)?
-   ;
-
-alternateRecordKeyClause
-   : ALTERNATE RECORD KEY? IS? qualifiedDataName passwordClause? (WITH? DUPLICATES)?
-   ;
-
-passwordClause
-   : PASSWORD IS? dataName
-   ;
-
-fileStatusClause
-   : FILE? STATUS IS? qualifiedDataName qualifiedDataName?
-   ;
-
-relativeKeyClause
-   : RELATIVE KEY? IS? qualifiedDataName
-   ;
-
-// - io control paragraph ----------------------------------
-
-ioControlParagraph
-   : I_O_CONTROL dot_fs (fileName dot_fs)? (ioControlClause+ dot_fs)?
-   ;
-
-ioControlClause
-   : rerunClause | sameClause | multipleFileClause | commitmentControlClause | applyWriteOnlyClause
-   ;
-
-rerunClause
-   : RERUN (ON (assignmentName | fileName))? EVERY (rerunEveryRecords | rerunEveryOf | rerunEveryClock)
-   ;
-
-rerunEveryRecords
-   : integerLiteral RECORDS
-   ;
-
-rerunEveryOf
-   : END? OF? (REEL | UNIT) OF fileName
-   ;
-
-rerunEveryClock
-   : integerLiteral CLOCK_UNITS?
-   ;
-
-sameClause
-   : SAME (RECORD | SORT | SORT_MERGE)? AREA? FOR? fileName+
-   ;
-
-multipleFileClause
-   : MULTIPLE FILE TAPE? CONTAINS? multipleFilePosition+
-   ;
-
-multipleFilePosition
-   : fileName (POSITION integerLiteral)?
-   ;
-
-applyWriteOnlyClause
-   : APPLY WRITE_ONLY (ON)? fileName+
-   ;
-
-commitmentControlClause
-   : COMMITMENT CONTROL FOR? fileName
-   ;
-
-endClause
-    : DOT_FS
-    ;
-
-// --- data division --------------------------------------------------------------------
-
-dataDivision
-   : DATA DIVISION dot_fs dataDivisionSection*
-   ;
-
-dataDivisionSection
-   : fileSection | workingStorageSection | linkageSection | localStorageSection
-   | dialectSection
-   ;
-
-dialectSection
-   : dialectNodeFiller
-   ;
-
-// -- file section ----------------------------------
-
-fileSection
-   : FILE SECTION dot_fs fileDescriptionEntry*
-   ;
-
-fileDescriptionEntry
-   : (fileDescriptionEntryClauses dataDescriptionEntry* | dialectNodeFiller)
-   ;
-
-fileDescriptionEntryClauses
-   : (FD | SD) cobolWord fileDescriptionEntryClause* dot_fs   ;
-
-fileDescriptionEntryClause
-   : externalClause | globalClause | blockContainsClause | recordContainsClause | labelRecordsClause | valueOfClause | dataRecordsClause | linageClause | codeSetClause | reportClause | recordingModeClause
-   ;
-
-externalClause
-   : IS? EXTERNAL
-   ;
-
-globalClause
-   : IS? GLOBAL
-   ;
-
-blockContainsClause
-   : BLOCK CONTAINS? integerLiteral blockContainsTo? (RECORDS | CHARACTERS)?
-   ;
-
-blockContainsTo
-   : TO integerLiteral
-   ;
-
-recordContainsClause
-   : RECORD (recordContainsClauseFormat1 | recordContainsClauseFormat2 | recordContainsClauseFormat3)
-   ;
-
-recordContainsClauseFormat1
-   : CONTAINS? integerLiteral CHARACTERS?
-   ;
-
-recordContainsClauseFormat2
-   : IS? VARYING IN? SIZE? ((FROM? integerLiteral)? recordContainsTo? CHARACTERS?)? (DEPENDING ON? qualifiedDataName)?
-   ;
-
-recordContainsClauseFormat3
-   : CONTAINS? integerLiteral recordContainsTo CHARACTERS?
-   ;
-
-recordContainsTo
-   : TO integerLiteral
-   ;
-
-labelRecordsClause
-   : LABEL (RECORD | RECORDS) (IS | ARE)? (OMITTED | STANDARD | dataName*)
-   ;
-
-valueOfClause
-   : VALUE OF valuePair+
-   ;
-
-valuePair
-   : systemName IS? (qualifiedDataName | literal)
-   ;
-
-dataRecordsClause
-   : DATA (RECORD | RECORDS) (IS | ARE)? qualifiedDataName+
-   ;
-
-linageClause
-   : LINAGE IS? (dataName | integerLiteral) LINES? linageAt*
-   ;
-
-linageAt
-   : linageFootingAt | linageLinesAtTop | linageLinesAtBottom
-   ;
-
-linageFootingAt
-   : WITH? FOOTING AT? (dataName | integerLiteral)
-   ;
-
-linageLinesAtTop
-   : LINES? AT? TOP (dataName | integerLiteral)
-   ;
-
-linageLinesAtBottom
-   : LINES? AT? BOTTOM (dataName | integerLiteral)
-   ;
-
-recordingModeClause
-   : RECORDING MODE? IS? modeStatement
-   ;
-
-modeStatement
-   : cobolWord
-   ;
-
-codeSetClause
-   : CODE_SET IS? alphabetName
-   ;
-
-reportClause
-   : (REPORT IS? | REPORTS ARE?) reportName+
-   ;
-
-// -- working storage section ----------------------------------
-
-workingStorageSection
-   : WORKING_STORAGE SECTION dot_fs dataDescriptionEntryForWorkingStorageSection*
-   ;
-// -- linkage section ----------------------------------
-
-linkageSection
-   : LINKAGE SECTION dot_fs dataDescriptionEntryForWorkingStorageAndLinkageSection*
-   ;
-
-// -- local storage section ----------------------------------
-
-localStorageSection
-   : LOCAL_STORAGE SECTION dot_fs dataDescriptionEntryForLocalStorageSection*
-   ;
-
-dataDescriptionEntryForLocalStorageSection
-   : dataDescriptionEntry
-   ;
-
-dataDescriptionEntryForWorkingStorageSection
-   : dataDescriptionEntryForWorkingStorageAndLinkageSection
-   ;
-
-dataDescriptionEntryForWorkingStorageAndLinkageSection
-   : dataDescriptionEntry
-   ;
-
-dataDescriptionEntry
-   : dataDescriptionEntryFormat1
-   | dataDescriptionEntryFormat2
-   | dataDescriptionEntryFormat1Level77
-   | dataDescriptionEntryFormat3
-   | dialectDescriptionEntry
-   ;
-
-dataDescriptionEntryFormat1
-   : levelNumber entryName? (dataGroupUsageClause | dataRedefinesClause | dataExternalClause
-   | dataGlobalClause | dataPictureClause | dataUsageClause | dataValueClause
-   | dataOccursClause | dataSignClause | dataSynchronizedClause
-   | dataJustifiedClause | dataBlankWhenZeroClause | dataDynamicLengthClause | dataVolatileClause)*
-   dot_fs   ;
-
-levelNumber
-   : LEVEL_NUMBER
-   ;
-
-
-dataDescriptionEntryFormat2
-   : LEVEL_NUMBER_66 entryName? dataRenamesClause dot_fs   ;
-
-dataDescriptionEntryFormat1Level77
-   : LEVEL_NUMBER_77 entryName? (dataGroupUsageClause | dataRedefinesClause | dataExternalClause
-     | dataGlobalClause | dataPictureClause | dataUsageClause | dataValueClause
-     | dataOccursClause | dataSignClause | dataSynchronizedClause
-     | dataJustifiedClause | dataBlankWhenZeroClause | dataDynamicLengthClause | dataVolatileClause)*
-     dot_fs   ;
-
-
-dataDescriptionEntryFormat3
-   : LEVEL_NUMBER_88 entryName? dataValueClause dot_fs   ;
-
-dialectDescriptionEntry
-   : dialectNodeFiller
-   ;
-
-entryName
-   : (FILLER | dataName)
-   ;
-
-dataGroupUsageClause
-   : GROUP_USAGE IS? (NATIONAL | UTF_8)
-   ;
-
-dataBlankWhenZeroClause
-   : BLANK WHEN? (ZERO | ZEROS | ZEROES)
-   ;
-
-dataExternalClause
-   : IS? EXTERNAL (BY literal)?
-   ;
-
-dataGlobalClause
-   : IS? GLOBAL
-   ;
-
-dataJustifiedClause
-   : (JUSTIFIED | JUST) RIGHT?
-   ;
-
-dataOccursClause
-   : OCCURS (integerLiteral | UNBOUNDED) dataOccursTo? TIMES? (DEPENDING ON? qualifiedDataName)? dataOccursSort* (INDEXED BY? LOCAL? indexName+)?
-   ;
-
-dataOccursTo
-   : TO (integerLiteral | UNBOUNDED)
-   ;
-
-dataOccursSort
-   : (ASCENDING | DESCENDING) KEY? IS? qualifiedDataName+
-   ;
-
-dataPictureClause
-   : (PICTURE | PIC) PICTUREIS? pictureString+
-   ;
-
-pictureString
-   : charString
-   ;
-
-dataDynamicLengthClause
-   : DYNAMIC LENGTH? (LIMIT IS? integerLiteral)?
-   ;
-
-dataVolatileClause
-   : VOLATILE
-   ;
-
-dataRedefinesClause
-   : REDEFINES dataName
-   ;
-
-dataRenamesClause
-   : RENAMES qualifiedVariableDataName thruDataName?
-   ;
-
-thruDataName
-   : (THROUGH | THRU) qualifiedVariableDataName
-   ;
-
-qualifiedVariableDataName
-   : (dataName (IN | OF))? dataName
-   ;
-
-dataSignClause
-   : (SIGN IS?)? (LEADING | TRAILING) (SEPARATE CHARACTER?)?
-   ;
-
-dataSynchronizedClause
-   : (SYNCHRONIZED | SYNC) (LEFT | RIGHT)?
-   ;
-
-dataUsageClause
-   : (USAGE IS?)? usageFormat
-   ;
-
-usageFormat
-   : BINARY NATIVE?
-   | COMP NATIVE?
-   | COMP_1 NATIVE?
-   | COMP_2 NATIVE?
-   | COMP_3 NATIVE?
-   | COMP_4 NATIVE?
-   | COMP_5 NATIVE?
-   | COMPUTATIONAL NATIVE?
-   | COMPUTATIONAL_1 NATIVE?
-   | COMPUTATIONAL_2 NATIVE?
-   | COMPUTATIONAL_3 NATIVE?
-   | COMPUTATIONAL_4 NATIVE?
-   | COMPUTATIONAL_5 NATIVE?
-   | DISPLAY NATIVE?
-   | DISPLAY_1 NATIVE?
-   | INDEX
-   | NATIONAL NATIVE?
-   | UTF_8 NATIVE?
-   | OBJECT REFERENCE cobolWord?
-   | PACKED_DECIMAL NATIVE?
-   | POINTER
-   | POINTER_32
-   | PROCEDURE_POINTER
-   | FUNCTION_POINTER
-   ;
-
-dataValueClause
-   : valueIsToken dataValueClauseLiteral
-   ;
-
-valueIsToken
-   : valueToken isAreToken?
-   ;
-
-valueToken
-   : VALUE | VALUES
-   ;
-
-isAreToken
-   : IS | ARE
-   ;
-
-dataValueClauseLiteral
-   : dataValueInterval (COMMACHAR? dataValueInterval)*
-   ;
-
-dataValueInterval
-   : dataValueIntervalFrom dataValueIntervalTo?
-   ;
-
-dataValueIntervalFrom
-   : literal | cobolWord
-   ;
-
-dataValueIntervalTo
-   : thruToken literal
-   ;
-
-thruToken
-   : (THROUGH | THRU)
-   ;
-
-// --- procedure division --------------------------------------------------------------------
+parser grammar CobolProcedureDivisionParser;
+options {tokenVocab = CobolProcedureDivisionLexer; }
 
 procedureDivision
-   : PROCEDURE DIVISION procedureDivisionUsingClause? procedureDivisionGivingClause? dot_fs procedureDeclaratives? procedureDivisionBody
+   : PROCEDURE DIVISION procedureDivisionUsingClause? procedureDivisionGivingClause? DOT_FS procedureDeclaratives? procedureDivisionBody EOF
    ;
 
 procedureDivisionUsingClause
@@ -783,149 +26,55 @@ procedureDivisionUsingParameter
    ;
 
 procedureDeclaratives
-   : DECLARATIVES dot_fs procedureDeclarative+ END DECLARATIVES dot_fs;
+   : DECLARATIVES DOT_FS procedureDeclarative+ END DECLARATIVES DOT_FS
+   ;
 
 procedureDeclarative
-   : procedureSectionHeader dot_fs (useStatement dot_fs) paragraphs
+   : procedureSectionHeader DOT_FS (useStatement DOT_FS) paragraphs
    ;
 
 procedureSectionHeader
    : sectionName SECTION integerLiteral?
    ;
 
-sectionOrParagraph
-   : (cobolWord | integerLiteral)
-         (
-             SECTION integerLiteral?
-         )?
-         dot_fs
+procedureDivisionBody
+   : paragraphs procedureSection*
    ;
 
-procedureDivisionBody
-   : (
-       ( sectionOrParagraph alteredGoTo? )
-       | sentence
-     )*
-   ;
+commaSeparator: COMMACHAR | COMMASEPARATOR;
 
 // -- procedure section ----------------------------------
 
 procedureSection
-   : procedureSectionHeader dot_fs paragraphs
-   ;
-
-sentence
-   : statement * endClause
-   | dialectStatement
-   ;
-
-paragraph
-   : paragraphDefinitionName dot_fs alteredGoTo?
+   : procedureSectionHeader DOT_FS paragraphs
    ;
 
 paragraphs
-   : (sentence | paragraph)*
+   : sentence* paragraph*
+   ;
+
+paragraph
+   : paragraphDefinitionName DOT_FS (alteredGoTo | sentence*)
+   ;
+
+sentence
+   : statement + (EOF | DOT_FS | dialectStatement)
+   | dialectStatement
    ;
 
 conditionalStatementCall
-   : statement
+   : statement | dialectStatement
    ;
 
 statement
-   : acceptStatement
-   | addStatement
-   | allocateStatement
-   | alterStatement
-   | callStatement
-   | cancelStatement
-   | closeStatement
-   | computeStatement
-   | continueStatement
-   | deleteStatement
-   | disableStatement
-   | displayStatement
-   | divideStatement
-   | dialectStatement
-   | enableStatement
-   | entryStatement
-   | evaluateStatement
-   | exhibitStatement
-   | exitStatement
-   | freeStatement
-   | generateStatement
-   | gobackStatement
-   | goToStatement
-   | ifStatement
-   | initializeStatement
-   | initiateStatement
-   | inspectStatement
-   | mergeStatement
-   | moveStatement
-   | multiplyStatement
-   | openStatement
-   | performStatement
-   | purgeStatement
-   | readStatement
-   | readyResetTraceStatement
-   | receiveStatement
-   | releaseStatement
-   | returnStatement
-   | rewriteStatement
-   | searchStatement
-   | sendStatement
-   | serviceStatement
-   | setStatement
-   | sortStatement
-   | startStatement
-   | stopStatement
-   | stringStatement
-   | subtractStatement
-   | terminateStatement
-   | unstringStatement
-   | writeStatement
-   | jsonStatement
-   | xmlStatement
+   : acceptStatement | addStatement | allocateStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement |
+    disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement |
+    exitStatement | freeStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement |
+    initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | openStatement | performStatement | purgeStatement |
+    readStatement | readyResetTraceStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement |
+    serviceReloadStatement | serviceLabelStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement |
+    terminateStatement | unstringStatement | writeStatement | xmlParseStatement | jsonStatement
    ;
-
-xmlGenerate
-    : GENERATE xmlGenIdentifier1 FROM xmlGenIdentifier2
-    (COUNT IN? xmlGenIdentifier3)?
-    (WITH? ENCODING integerLiteral)? (WITH? XML_DECLARATION)? (WITH? ATTRIBUTES)?
-    (NAMESPACE IS? (xmlGenIdentifier4 | literal))? (NAMESPACE_PREFIX IS? (xmlGenIdentifier5 | literal))?
-    (NAME OF? (xmlGenIdentifier6 IS? literal)+)?
-    (TYPE OF? (xmlGenIdentifier7 IS? (ATTRIBUTE | ELEMENT | CONTENT))+)?
-    (SUPPRESS ((xmlGenIdentifier8 when_phrase?) | generic_suppression_phrase)+)?
-    onExceptionClause? notOnExceptionClause? END_XML?
-    ;
-
-xmlParseStatement
-   : PARSE qualifiedDataName xmlEncoding? xmlNational? xmlValidating? xmlProcessinProcedure through? onExceptionClause? notOnExceptionClause? END_XML?
-   ;
-
-xmlStatement
-   : XML
-   (
-       xmlGenerate
-       |
-       xmlParseStatement
-   )
-   ;
-
-xmlGenIdentifier1: qualifiedDataName;
-
-xmlGenIdentifier2: qualifiedDataName;
-
-xmlGenIdentifier3: qualifiedDataName;
-
-xmlGenIdentifier4: qualifiedDataName;
-
-xmlGenIdentifier5: qualifiedDataName;
-
-xmlGenIdentifier6: qualifiedDataName;
-
-xmlGenIdentifier7: qualifiedDataName;
-
-xmlGenIdentifier8: qualifiedDataName;
 
 jsonStatement
     : jsonParse | jsonGenerate
@@ -978,9 +127,7 @@ jsonGenIdentifier6: qualifiedDataName;
 
 when_phrase: WHEN  json_phrases (OR? (json_phrases))*;
 
-generic_suppression_phrase: (EVERY ((NUMERIC generic_suppression_arguments?) | (NONNUMERIC generic_suppression_arguments?) |  generic_suppression_arguments))? when_phrase;
-
-generic_suppression_arguments : ATTRIBUTE | CONTENT | ELEMENT;
+generic_suppression_phrase: (EVERY (NUMERIC | NONNUMERIC))? when_phrase;
 
 json_phrases: ZERO | ZEROES | ZEROS | SPACE | SPACES | LOW_VALUE | LOW_VALUES | HIGH_VALUE | HIGH_VALUES;
 
@@ -992,7 +139,7 @@ acceptStatement
    ;
 
 dialectStatement
-   : ZERO_WIDTH_SPACE | dialectIfStatment
+   : dialectNodeFiller | dialectIfStatment
    ;
 
 acceptFromDateStatement
@@ -1058,7 +205,7 @@ allocateStatement
 // alter statement
 
 alterStatement
-   : ALTER alterProceedTo (commaSeparator? alterProceedTo)*
+   : ALTER alterProceedTo+
    ;
 
 alterProceedTo
@@ -1259,10 +406,7 @@ entryStatement
 // evaluate statement
 
 evaluateStatement
-   : EVALUATE evaluateSelect evaluateAlsoSelect* evaluateWhenPhrase+ evaluateWhenOther?
-   (
-      END_EVALUATE
-   )
+   : EVALUATE evaluateSelect evaluateAlsoSelect* evaluateWhenPhrase+ evaluateWhenOther? END_EVALUATE?
    ;
 
 evaluateSelect
@@ -1282,7 +426,10 @@ evaluateWhen
    ;
 
 evaluateCondition
-   : ANY | NOT? evaluateValue evaluateThrough? | condition | booleanLiteral
+   : ANY
+   | booleanLiteral
+   | condition
+   | NOT? evaluateValue evaluateThrough?
    ;
 
 evaluateThrough
@@ -1344,15 +491,11 @@ goToStatement
 // if statement
 
 dialectIfStatment
-   : DIALECT_IF dialectNodeFiller* ifThen ifElse? END_IF?
+   : DIALECT_IF dialectNodeFiller? ifThen ifElse? END_IF?
    ;
+
 ifStatement
-   : IF condition ifThen
-   (
-      ifElse?
-      
-   )
-   (END_IF)
+   : IF (condition | dialectNodeFiller?) ifThen ifElse? END_IF?
    ;
 
 ifThen
@@ -1568,7 +711,7 @@ performStatement
    ;
 
 performInlineStatement
-   : performType? conditionalStatementCall* END_PERFORM
+   : performType? conditionalStatementCall*? (EXIT PERFORM CYCLE?)? END_PERFORM
    ;
 
 performProcedureStatement
@@ -1816,12 +959,13 @@ sendingField
 
 // service statement
 
-serviceStatement
-   :
-   SERVICE
-   (
-      LABEL | RELOAD generalIdentifier
-   );
+serviceLabelStatement
+   : SERVICE LABEL
+   ;
+
+serviceReloadStatement
+   : SERVICE RELOAD generalIdentifier
+   ;
 
 // sort statement
 
@@ -2069,6 +1213,10 @@ writeNotAtEndOfPagePhrase
 
 // xml statement
 
+xmlParseStatement
+   : XML PARSE qualifiedDataName xmlEncoding? xmlNational? xmlValidating? xmlProcessinProcedure through? onExceptionClause? notOnExceptionClause? END_XML?
+   ;
+
 xmlEncoding
    : WITH? ENCODING  integerLiteral
    ;
@@ -2166,7 +1314,7 @@ generalIdentifier
    ;
 
 functionCall
-   : functionReference (LPARENCHAR argument (COMMACHAR? argument)* RPARENCHAR)* referenceModifier?
+   : FUNCTION functionName (LPARENCHAR argument (COMMACHAR? argument)* RPARENCHAR)* referenceModifier?
    ;
 
 referenceModifier
@@ -2217,20 +1365,12 @@ alphabetName
    : cobolWord
    ;
 
-assignmentName
-   : systemName
-   ;
-
 cdName
    : cobolWord
    ;
 
 className
    : cobolWord
-   ;
-
-computerName
-   : systemName
    ;
 
 dataName
@@ -2241,20 +1381,12 @@ variableUsageName
    : cobolWord
    ;
 
-environmentName
-   : systemName
-   ;
-
 fileName
    : cobolWord
    ;
 
 functionName
    : INTEGER | LENGTH | RANDOM | SUM | MAX | WHEN_COMPILED | cobolWord
-   ;
-
-indexName
-   : cobolWord
    ;
 
 libraryName
@@ -2277,10 +1409,6 @@ procedureName
    : paragraphName inSection?
    ;
 
-programName
-   : literal | cobolWord | OR | AND
-   ;
-
 recordName
    : qualifiedDataName
    ;
@@ -2291,14 +1419,6 @@ reportName
 
 sectionName
    : cobolWord | integerLiteral
-   ;
-
-systemName
-   : cobolWord
-   ;
-
-symbolicCharacter
-   : cobolWord
    ;
 
 figurativeConstant
@@ -2317,13 +1437,11 @@ integerLiteral
    : INTEGERLITERAL | LEVEL_NUMBER | LEVEL_NUMBER_66 | LEVEL_NUMBER_77 | LEVEL_NUMBER_88
    ;
 
-//cics_conditions: EOC | EODS | INVMPSZ | INVPARTN | INVREQ | MAPFAIL | PARTNFAIL | RDATT | UNEXPIN;
-
 literal
    : NONNUMERICLITERAL | figurativeConstant | numericLiteral | booleanLiteral | charString | dialectLiteral | utfLiteral | hexadecimalUtfLiteral
    ;
 
-dialectLiteral: dialectNodeFiller+ DOT_FS?;
+dialectLiteral: dialectNodeFiller+;
 
 utfLiteral: U_CHAR NONNUMERICLITERAL;
 
@@ -2360,29 +1478,23 @@ power
    ;
 
 basis
-   : (dialectNodeFiller DOT_FS?) | generalIdentifier | literal | LPARENCHAR arithmeticExpression RPARENCHAR
+   : dialectNodeFiller | generalIdentifier | literal | LPARENCHAR arithmeticExpression RPARENCHAR
    ;
 
 cobolWord
-   : IDENTIFIER | SYMBOL | INTEGER | ELEMENT | CHANNEL | PROCESS | REMOVE | WAIT | NAMESPACE_PREFIX | NAMESPACE
-   | ATTRIBUTES | ATTRIBUTE | ANY | LIST | NAME | THREAD | U_CHAR | TYPE
-   | allowedCobolKeywords
+   : IDENTIFIER | SYMBOL | INTEGER | CHANNEL | PROCESS | REMOVE | WAIT | ANY | LIST | NAME | THREAD | U_CHAR
+   | cobolKeywords
    ;
 
-allowedCobolKeywords
-   : AS | COMPAT| CR | DLL | FIELD | MMDDYYYY | PRINTER | DAY_OF_WEEK
-   | ENTRY_NAME | ENTRY_INTERFACE
-   | STATIC | LONGUPPER | LONGMIXED
-   | REMARKS | RESUME | TIMER | TODAYS_DATE | TODAYS_NAME | YEAR | YYYYDDD | YYYYMMDD | WHEN_COMPILED
+cobolKeywords
+   : ADDRESS | BOTTOM | COUNT | CR | FIELD | FIRST | MMDDYYYY | PRINTER | DAY | TIME | DATE | DAY_OF_WEEK
+   | REMARKS | RESUME | TIMER | TODAYS_DATE | TODAYS_NAME | TOP | YEAR | YYYYDDD | YYYYMMDD | WHEN_COMPILED
    | DISK | KEYBOARD | PORT | READER | REMOTE | VIRTUAL | LIBRARY | DEFINITION | PARSE | BOOL | ESCAPE | INITIALIZED
-   | LOC | BYTITLE | BYFUNCTION | ABORT | ORDERLY | ASSOCIATED_DATA | ASSOCIATED_DATA_LENGTH
-   | VOLATILE
+   | LOC | BYTITLE | BYFUNCTION | ABORT | ORDERLY | ASSOCIATED_DATA | ASSOCIATED_DATA_LENGTH | CLOSE | CURRENCY
+   | DATA | DBCS | EXIT | EXTEND | INITIAL | NATIONAL | OBJECT | OFF | QUOTE | SEPARATE | SEQUENCE
+   | SERVICE | STANDARD | SUPPRESS | TERMINAL | TEST | VOLATILE
    ;
 
 dialectNodeFiller
-    : ZERO_WIDTH_SPACE DOT_FS? EOF?
-    ;
-
-dot_fs
-    : DOT_FS
+    : ZERO_WIDTH_SPACE+ DOT? EOF?
     ;
